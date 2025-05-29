@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>World Clock Converter</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-image: url('marmon-rail.jpeg');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+      text-align: center;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      backdrop-filter: brightness(0.65);
+    }
+
+    /*.overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 0;
+    }
+
+    body > *:not(.overlay) {
+      position: relative;
+      z-index: 1;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      background-image: url('marmon-rail.jpg');
+      background-size: cover;
+      background-position: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      z-index: -1;
+      filter: brightness(0.4) blur(2px);
+    }*/
+
+
+    h1 {
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .clock-container {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .clock {
+      background: rgba(0, 0, 0, 0.65);
+      border-radius: 12px;
+      padding: 20px 30px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      min-width: 220px;
+      position: relative;
+    }
+
+    .clock h2 {
+      margin-bottom: 10px;
+      font-size: 1.5em;
+      color: #ffd700;
+    }
+
+    .flag {
+      width: 32px;
+      height: 22px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 1px solid #fff;
+      border-radius: 3px;
+    }
+
+    .time {
+      font-size: 1.2em;
+      font-family: 'Courier New', monospace;
+    }
+
+    .manual {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+
+    input, select, button {
+      margin: 8px;
+      padding: 8px;
+      font-size: 1em;
+      border-radius: 6px;
+      border: none;
+    }
+
+    button {
+      background-color: #ffd700;
+      color: #000;
+      cursor: pointer;
+    }
+
+    #manualResult {
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Marmon Rail - GIC</h1>
+
+<div class="clock-container">
+  <div class="clock">
+    <img class="flag" src="https://flagcdn.com/ca.svg" alt="Canada">
+    <h2>EST (Canada)</h2>
+    <div class="time" id="est"></div>
+  </div>
+  <div class="clock">
+    <img class="flag" src="https://flagcdn.com/in.svg" alt="India">
+    <h2>IST (India)</h2>
+    <div class="time" id="ist"></div>
+  </div>
+  <div class="clock">
+    <img class="flag" src="https://flagcdn.com/us.svg" alt="USA">
+    <h2>CST (USA)</h2>
+    <div class="time" id="cst"></div>
+  </div>
+</div>
+
+<div class="manual">
+  <h2>Try Custom Time</h2>
+  <label>
+    Timezone:
+    <select id="inputZone">
+      <option value="America/New_York">EST</option>
+      <option value="Asia/Kolkata">IST</option>
+      <option value="America/Chicago">CST</option>
+    </select>
+  </label>
+  <label>
+    Time (HH:mm):
+    <input type="time" id="inputTime">
+  </label>
+  <button onclick="convertTime()">Convert</button>
+
+  <div id="manualResult"></div>
+</div>
+
+<script>
+  function formatDateTime(date, timeZone) {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(date).replace(',', '').replace('am', 'AM').replace('pm', 'PM');
+  }
+
+  function updateClocks() {
+    const now = new Date();
+    document.getElementById('est').textContent = formatDateTime(now, 'America/New_York');
+    document.getElementById('ist').textContent = formatDateTime(now, 'Asia/Kolkata');
+    document.getElementById('cst').textContent = formatDateTime(now, 'America/Chicago');
+  }
+
+  function convertTime() {
+    const zone = document.getElementById('inputZone').value;
+    const inputTime = document.getElementById('inputTime').value;
+
+    if (!inputTime) {
+      alert("Please enter a time in HH:mm format.");
+      return;
+    }
+
+    const [hours, minutes] = inputTime.split(':');
+    const now = new Date();
+    const inputDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+    const est = formatDateTime(inputDate, 'America/New_York');
+    const ist = formatDateTime(inputDate, 'Asia/Kolkata');
+    const cst = formatDateTime(inputDate, 'America/Chicago');
+
+    document.getElementById('manualResult').innerHTML = `
+      <strong>Input (${zone.split('/')[1]}):</strong> ${formatDateTime(inputDate, zone)}<br>
+      <strong>EST:</strong> ${est}<br>
+      <strong>IST:</strong> ${ist}<br>
+      <strong>CST:</strong> ${cst}
+    `;
+  }
+
+  setInterval(updateClocks, 1000);
+  updateClocks();
+</script>
+
+</body>
+</html>
