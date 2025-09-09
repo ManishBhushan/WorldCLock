@@ -19,6 +19,44 @@
       backdrop-filter: brightness(0.65);
     }
 
+    /*.overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 0;
+    }
+
+    body > *:not(.overlay) {
+      position: relative;
+      z-index: 1;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      background-image: url('marmon-rail.jpg');
+      background-size: cover;
+      background-position: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      z-index: -1;
+      filter: brightness(0.4) blur(2px);
+    }*/
+
+
     h1 {
       margin-bottom: 30px;
       font-size: 2.5em;
@@ -68,7 +106,6 @@
       padding: 20px;
       border-radius: 10px;
       display: inline-block;
-      margin-top: 20px;
     }
 
     input, select, button {
@@ -88,13 +125,6 @@
     #manualResult {
       margin-top: 20px;
       font-size: 1.1em;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.65);
-      padding: 20px 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-      display: inline-block;
-      min-width: 250px;
     }
   </style>
 </head>
@@ -125,9 +155,9 @@
   <label>
     Timezone:
     <select id="inputZone">
-      <option value="America/New_York">EST (Canada)</option>
-      <option value="Asia/Kolkata">IST (India)</option>
-      <option value="America/Chicago">CST (USA)</option>
+      <option value="America/New_York">EST</option>
+      <option value="Asia/Kolkata">IST</option>
+      <option value="America/Chicago">CST</option>
     </select>
   </label>
   <label>
@@ -160,11 +190,30 @@
     document.getElementById('cst').textContent = formatDateTime(now, 'America/Chicago');
   }
 
-  const zoneLabels = {
-    "America/New_York": "EST (Canada)",
-    "Asia/Kolkata": "IST (India)",
-    "America/Chicago": "CST (USA)"
-  };
+  // helpers to build an instant for a given wall-clock in a chosen IANA timezone
+  function getOffsetMinutes(date, timeZone) {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+    });
+    const parts = fmt.formatToParts(date);
+    const map = {};
+    for (const p of parts) {
+      if (p.type && p.value) map[p.type] = p.value;
+    }
+    const asUTC = Date.UTC(+map.year, +map.month - 1, +map.day, +map.hour, +map.minute, +map.second);
+    return Math.round((date.getTime() - asUTC) / 60000);
+  }
+
+  function makeDateInTimeZone(year, month, day, hour, minute, timeZone) {
+    // anchor to midday to compute correct offset for that date (handles DST)
+    const anchor = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const offsetMinutes = getOffsetMinutes(anchor, timeZone);
+    const utcEpochForLocal = Date.UTC(year, month - 1, day, hour, minute, 0);
+    const targetEpoch = utcEpochForLocal + offsetMinutes * 60 * 1000;
+    return new Date(targetEpoch);
+  }
 
   function convertTime() {
     const zone = document.getElementById('inputZone').value;
@@ -175,19 +224,25 @@
       return;
     }
 
-    const [hours, minutes] = inputTime.split(':');
+    const parts = inputTime.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+
     const now = new Date();
-    const inputDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    const year = now.getFullYear(), month = now.getMonth() + 1, day = now.getDate();
+
+    // create an instant that represents the entered wall time in the selected timezone
+    const inputDate = makeDateInTimeZone(year, month, day, hours, minutes, zone);
 
     const est = formatDateTime(inputDate, 'America/New_York');
     const ist = formatDateTime(inputDate, 'Asia/Kolkata');
     const cst = formatDateTime(inputDate, 'America/Chicago');
 
     document.getElementById('manualResult').innerHTML = `
-      <strong>Input (${zoneLabels[zone]}):</strong> ${formatDateTime(inputDate, zone)}<br>
-      <strong>EST (Canada):</strong> ${est}<br>
-      <strong>IST (India):</strong> ${ist}<br>
-      <strong>CST (USA):</strong> ${cst}
+      <strong>Input (${zone.split('/')[1]}):</strong> ${formatDateTime(inputDate, zone)}<br>
+      <strong>EST:</strong> ${est}<br>
+      <strong>IST:</strong> ${ist}<br>
+      <strong>CST:</strong> ${cst}
     `;
   }
 
